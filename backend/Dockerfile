@@ -6,6 +6,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY atlas ./atlas
 COPY migrations ./migrations
+COPY start.sh ./start.sh
 RUN pip install .
 
 # Never run as root.
@@ -13,5 +14,5 @@ RUN useradd --create-home --uid 10001 atlas
 USER atlas
 
 EXPOSE 8000
-# The same image runs the API (default) or the worker (python -m atlas.worker).
-CMD ["uvicorn", "atlas.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--no-server-header"]
+# The same image runs the API (default, see start.sh) or the worker (python -m atlas.worker).
+CMD ["./start.sh"]
