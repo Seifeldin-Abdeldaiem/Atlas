@@ -1,0 +1,87 @@
+# Local development: database, file storage, API, worker and web app.
+#   cp .env.example .env   (then add your Clerk development keys)
+#   docker compose up --build
+# Web app: http://localhost:3000   API: http://localhost:8000/docs
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: atlas_owner
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: atlas
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas_owner -d atlas"]
+      interval: 2s
+      retries: 30
+
+  # S3-compatible local storage. (MinIO's images were removed from Docker Hub
+  # in September 2026.) Only the atlas-local identity exists, so there is no
+  # anonymous access.
+  storage:
+    image: chrislusf/seaweedfs:latest
+    command: server -dir=/data -s3 -s3.port=9000 -s3.config=/etc/seaweedfs/s3.json
+    configs:
+      - source: s3_identities
+        target: /etc/seaweedfs/s3.json
+    ports: ["9000:9000"]
+    volumes: [objects:/data]
+
+  storage-setup:
+    image: chrislusf/seaweedfs:latest
+    depends_on: [storage]
+    entrypoint: >
+      /bin/sh -c "until echo 's3.bucket.list' | weed shell -master=storage:9333 >/dev/null 2>&1; do sleep 1; done;
+      echo 's3.bucket.list' | weed shell -master=storage:9333 | grep -q atlas-uploads ||
+      echo 's3.bucket.create -name atlas-uploads' | weed shell -master=storage:9333"
+
+  migrate:
+    build: ./backend
+    command: ["python", "-m", "atlas.migrate"]
+    environment:
+      DATABASE_OWNER_URL: postgresql://atlas_owner:change-me@postgres:5432/atlas
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: ./backend
+    env_file: .env
+    environment: &backend_env
+      DATABASE_URL: postgresql://atlas_owner:change-me@postgres:5432/atlas
+      STORAGE_ENDPOINT_URL: http://storage:9000
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      storage-setup: { condition: service_completed_successfully }
+
+  worker:
+    build: ./backend
+    command: ["python", "-m", "atlas.worker"]
+    env_file: .env
+    environment: *backend_env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      storage-setup: { condition: service_completed_successfully }
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    env_file: .env
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  objects:
+
+configs:
+  s3_identities:
+    content: |
+      {"identities": [{"name": "atlas-local",
+        "credentials": [{"accessKey": "atlas-local", "secretKey": "change-me-local-only"}],
+        "actions": ["Admin", "Read", "Write", "List", "Tagging"]}]}

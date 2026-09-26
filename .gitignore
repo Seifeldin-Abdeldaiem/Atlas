@@ -1,0 +1,17 @@
+# Secrets never go in git.
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+
+node_modules/
+.next/
+out/
+
+.DS_Store
