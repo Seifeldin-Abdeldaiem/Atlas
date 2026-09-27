@@ -1,28 +1,75 @@
 # Atlas
 
-Atlas finds duplicate lines in a company's product catalogue (and, later, duplicate work in task exports). This repository is the production codebase.
+**Find the duplicate products hiding in a catalogue.** Upload a spreadsheet of parts or products, and Atlas shows which lines are the same item, keeps look-alikes apart, and totals the stock tied up in duplicates. People review every match before downloading a clean file.
 
-**Current build: Phase 4 complete (catalogue duplicate finding).** People sign in, create or join a workspace, upload a CSV, Excel or JSON product catalogue and check what Atlas read. **Start analysis** finds duplicate groups with reasons, keeps look-alikes apart (2RS vs ZZ, A2 vs A4, 100 W vs 150 W), optionally asks a Claude model about pairs the rules can't decide, and totals the stock and money on duplicate lines. On the results screen people confirm or reject groups, choose the line to keep, take lines out, settle unclear pairs, and download their file with the results added. Every decision is kept when the analysis runs again.
+**Live:** [atlasmatch.co.uk](https://atlasmatch.co.uk) (free hosting: the first visit after a quiet spell can take up to a minute to wake up)
+
+![Atlas landing page](docs/images/landing.png)
+
+![Results screen with duplicate groups, reasons and review actions](docs/images/results.png)
+
+## Why it exists
+
+The same part is often listed several times: `SKF 6205-2RS Deep Groove Ball Bearing`, `6205 2RS SKF bearing`, `Bearing 6205-2RS (SKF)`. Each copy keeps its own stock count, so businesses reorder parts they already have and staff pick the wrong line. Exact-match tools miss these, and naive fuzzy matching merges parts that only look alike (a 2RS bearing has rubber seals, a ZZ bearing has metal shields: different products).
+
+## Highlights
+
+- **Matching you can trust.** Hard rules first (variant, brand, part number, size, thread, power, current, poles, material, colour, grade), text similarity second, and anything doubtful goes to a person. On labelled test catalogues: **100% precision** (no wrong merges) and 89% to 100% recall with rules alone; on a real bilingual sample, 100% precision and 97% recall.
+- **English and Arabic.** Arabic-Indic digits, brands and suffixes spelled in Arabic letters (`اس كي اف` = SKF, `زد زد` = ZZ), and Arabizi (`sha7m` = grease) are normalised before matching.
+- **Look-alikes are explained, not merged.** "Different seal type: 2RS has rubber seals on both sides, ZZ has metal shields on both sides." Conflicting rows can never end up in one group, even through a chain of similar pairs.
+- **Stock and money on duplicate lines.** Pack sizes are converted to single units; mixed currencies or units that can't be converted give no total rather than a guess.
+- **People stay in charge.** Confirm or reject groups, choose the line to keep, settle unclear pairs. Every decision is re-applied when the analysis runs again.
+- **Optional AI review.** Pairs the rules can't decide can go to a Claude model, with data minimisation (never stock, cost or supplier), structured output, a per-workspace cache and a spending cap.
+- **Company data separated by the database itself.** PostgreSQL row-level security on every tenant table; a missing filter in code returns nothing rather than another company's data. Tests prove one company can't read, change or plant data in another's workspace.
+- **Hostile files handled safely.** Type checked by content, parsing in a separate process with memory and time limits, formulas never evaluated, and exports protected against spreadsheet formula injection.
+- **Fast enough for real catalogues.** 20,000 lines analysed in about 20 seconds.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Upload CSV, Excel or JSON] --> B[Read safely in a sandbox]
+    B --> C[Match columns: name, part number, brand, stock, cost]
+    C --> D[Normalise each line: brand, part, variant, sizes, type]
+    D --> E[Compare plausible pairs: rules first, then similarity]
+    E --> F{Sure?}
+    F -- yes --> G[Duplicate groups and look-alikes]
+    F -- no --> H[Needs review, or AI review if enabled]
+    H --> G
+    G --> I[People review]
+    I --> J[Download the file with results added]
+```
+
+| Part | Technology |
+| --- | --- |
+| Web app | Next.js 15, React 19, TypeScript |
+| API and worker | Python 3.12, FastAPI, psycopg 3, a Postgres job queue |
+| Database | PostgreSQL 16 with row-level security |
+| Sign-in and workspaces | Clerk (organisations) |
+| File storage | S3-compatible: Cloudflare R2 in production, SeaweedFS locally |
+| AI review (optional) | Anthropic Claude API with structured output |
+| Hosting | Docker on Render, DNS on Cloudflare; one `render.yaml` blueprint |
+| Tests | 181 automated tests: matching accuracy, company separation, full pipeline, exports |
 
 ## What's in the repository
 
 | Folder | What it is |
 | --- | --- |
-| `backend/atlas/ingest/` | File reading: format detection, CSV / XLSX / JSON readers, column mapping (task or catalogue fields), validation report. Pure Python, fully tested. |
-| `backend/atlas/catalogue/` | Catalogue analysis: normalisation (English and Arabic), matching rules, AI review, stock and value figures. Pure Python. Product knowledge (variant suffixes, brands, product words) lives in `rules.py`. |
-| `backend/atlas/analysis.py`, `export.py`, `review.py` | Running an analysis, building the cleaned file, and applying people's review decisions, with results stored per workspace. |
+| `backend/atlas/ingest/` | File reading: format detection, CSV, Excel and JSON readers, column mapping, validation report. |
+| `backend/atlas/catalogue/` | Normalisation (English and Arabic), matching rules, AI review, stock and value figures. Product knowledge (variant suffixes, brands, product words) lives in `rules.py`. |
+| `backend/atlas/analysis.py`, `export.py`, `review.py` | Running an analysis, building the cleaned file and applying people's decisions. |
 | `backend/atlas/api/` | The API (FastAPI). |
-| `backend/atlas/worker.py` | Background worker: reads uploaded files, runs analyses, builds exports, deletes files after 7 days. |
-| `backend/migrations/` | Database schema, including row-level security that keeps each company's data separate. |
-| `backend/tests/` | Automated tests. |
-| `web/` | The web app (Next.js). |
-| `docker-compose.yml` | Runs everything on your computer. |
+| `backend/atlas/worker.py` | Background worker: reads uploads, runs analyses, builds exports, deletes files after 7 days. |
+| `backend/migrations/` | Database schema, including the row-level security policies. |
+| `backend/tests/` | Automated tests, with labelled test catalogues in `tests/fixtures/catalogue`. |
+| `web/` | The web app. |
+| `docker-compose.yml`, `render.yaml` | Run everything locally; deploy everything to Render. |
 
 ## Run it on your computer
 
 You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and a free [Clerk](https://clerk.com) account.
 
-1. **Set up Clerk** (see [Clerk setup](#clerk-setup) below) and copy its development keys.
+1. Set up Clerk (see [Clerk setup](#clerk-setup)) and copy its development keys.
 2. Copy the settings template and fill in the three Clerk values:
    ```
    cp .env.example .env
@@ -31,9 +78,9 @@ You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and a
    ```
    docker compose up --build
    ```
-4. Open http://localhost:3000, sign up, create a workspace and upload a file.
+4. Open http://localhost:3000, sign up, create a workspace and upload a catalogue. `backend/tests/fixtures/catalogue/stores.csv` is a good first file.
 
-Local file storage runs in SeaweedFS, an S3-compatible server, at http://localhost:9000 (access key `atlas-local`, secret `change-me-local-only`). It has no web console. These local passwords are for your computer only. (MinIO was used until its images were removed from Docker Hub in September 2026.)
+Local file storage runs in SeaweedFS at http://localhost:9000 (access key `atlas-local`, secret `change-me-local-only`). These local passwords are for your computer only.
 
 ## Run the tests
 
@@ -41,18 +88,10 @@ Local file storage runs in SeaweedFS, an S3-compatible server, at http://localho
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                                   # file-reading tests; no database needed
+pytest                                   # no database needed for most tests
 ```
 
-The tenant-isolation tests need a disposable database. With `docker compose up postgres` running:
-
-```
-DATABASE_OWNER_URL=postgresql://atlas_owner:change-me@localhost:5432/atlas pytest tests/test_tenant_isolation.py
-```
-
-They check that one company can't read, change, delete or plant data in another company's workspace. **Run these before every deploy.**
-
-The end-to-end tests (analysis, AI settings and cache, export) also need the local file storage:
+The company-separation and end-to-end tests need the local database and storage (`docker compose up postgres storage storage-setup`):
 
 ```
 DATABASE_OWNER_URL=postgresql://atlas_owner:change-me@localhost:5432/atlas \
@@ -61,105 +100,68 @@ STORAGE_ACCESS_KEY_ID=atlas-local STORAGE_SECRET_ACCESS_KEY=change-me-local-only
 pytest
 ```
 
-### Matching accuracy
+Run the company-separation tests (`tests/test_tenant_isolation.py`) before every deploy.
 
-`pytest -s tests/test_matching.py` prints precision (how many grouped pairs are real duplicates) and recall (how many real duplicates were found) for each labelled file in `tests/fixtures/catalogue`. The files are made up by `generate.py` in that folder; `blind.csv` is never used for tuning. Rules only, today: 100% precision on every file, recall 89% to 100%.
+`pytest -s tests/test_matching.py` prints precision and recall for every labelled catalogue. The files are generated by `tests/fixtures/catalogue/generate.py`; `blind.csv` is never used for tuning.
+
+| Labelled file | Precision | Recall |
+| --- | --- | --- |
+| bearings.csv | 100% | 100% |
+| fasteners.csv | 100% | 100% |
+| stores.csv (mixed, English and Arabic) | 100% | 88.7% |
+| blind.csv (never tuned on) | 100% | 95.3% |
+
+Rules only, no AI. Most remaining misses are English and Arabic descriptions of the same item, which go to Needs review (or AI review).
 
 ## AI review (optional)
 
-Pairs the rules can't decide (for example the same item named in English on one line and in Arabic on the other) can be checked by a Claude model. Add a key from console.anthropic.com to `.env` and restart the worker:
+Add a key from console.anthropic.com to `.env` (locally) or the API service's settings (in production):
 
 ```
 ANTHROPIC_API_KEY=...
 AI_REVIEW_MODEL=claude-opus-5
 ```
 
-Without a key everything else works and those pairs stay under "needs review". Only the cleaned name, brand, part number, variant, kind of product and sizes are sent, never stock, cost, supplier or other columns. Answers are cached per workspace, at most 2,000 pairs are sent per analysis, and a workspace admin can turn AI review off (`PUT /v1/settings`). To measure accuracy and cost on a labelled file (this calls the API and costs money; it asks first):
+Without a key everything else works and unclear pairs stay under Needs review. Only the cleaned name, brand, part number, variant, kind of product and sizes are sent. Answers are cached per workspace, at most 2,000 pairs are sent per analysis, and workspace admins can turn it off in Settings. To measure accuracy and cost on a labelled file (this calls the API and asks first):
 
 ```
 cd backend
 ANTHROPIC_API_KEY=... .venv/bin/python -m atlas.catalogue.ai_check tests/fixtures/catalogue/blind.csv
 ```
 
-## Put it online
+## Deploy
 
-The steps use [Render](https://render.com) for hosting and [Cloudflare R2](https://developers.cloudflare.com/r2/) for file storage. Any host that runs Docker and offers managed Postgres works the same way.
+`render.yaml` describes the whole setup: a Postgres database, the API (which on the free plan also runs migrations and the background worker) and the web app, in Frankfurt, with custom domains.
 
-### 1. Accounts
+1. Push the repository to GitHub.
+2. Create an R2 bucket (EU jurisdiction, public access off) and an Account API token with Object Read & Write on that bucket only.
+3. Create a Clerk production instance for your domain and add the DNS records it lists (DNS only, not proxied). Turn off social sign-in providers until you add your own credentials for them.
+4. In Render, choose **New > Blueprint**, pick the repository, and paste the secrets it asks for (R2 endpoint and keys, Clerk production keys; leave `ANTHROPIC_API_KEY` empty to keep AI review off).
+5. Point your domain at the two Render services with CNAME records (DNS only).
 
-- **GitHub**: create a private repository and push this code to it.
-- **Render**: create an account and connect it to GitHub.
-- **Clerk**: create a production instance (see below).
-- **Cloudflare**: create an account and enable R2.
-
-### 2. Database
-
-In Render, create a **PostgreSQL** database in an EU region (Frankfurt) or wherever your customers are. Copy its **Internal Database URL**; this is both `DATABASE_URL` and `DATABASE_OWNER_URL`.
-
-The first migration creates a restricted database role, `atlas_app`, that the API and worker use. This needs a database user allowed to create roles. If the migration fails with `permission denied to create role`, your host doesn't allow that: stop and ask for the alternative setup rather than removing the role, because the role is what enforces company separation.
-
-### 3. File storage
-
-In Cloudflare R2:
-
-1. Create a bucket (for example `atlas-uploads`) in the EU jurisdiction. Leave public access **off**.
-2. Create an **R2 API token** with *Object Read & Write* on that bucket only.
-3. Note the **Access Key ID**, **Secret Access Key** and the S3 endpoint `https://<account-id>.r2.cloudflarestorage.com`.
-
-### 4. Services on Render
-
-Create these from your GitHub repository, all in the same region as the database:
-
-| Service | Render type | Root directory | Start command |
-| --- | --- | --- | --- |
-| `atlas-api` | Web Service (Docker) | `backend` | *(default in Dockerfile)* |
-| `atlas-worker` | Background Worker (Docker) | `backend` | `python -m atlas.worker` |
-| `atlas-web` | Web Service (Docker) | `web` | *(default in Dockerfile)* |
-
-On `atlas-api`, set **Pre-Deploy Command** to `python -m atlas.migrate` so the database is updated before each release.
-
-### 5. Settings
-
-In each service's **Environment** tab, add the variables from `.env.example` with real values. The API and worker need the database, Clerk and storage settings; the web app needs the Clerk keys and `NEXT_PUBLIC_API_URL`.
-
-| Variable | Production value |
-| --- | --- |
-| `ENVIRONMENT` | `production` (also hides the API docs page) |
-| `WEB_ORIGINS`, `CLERK_AUTHORIZED_PARTIES` | Your web app's address, e.g. `https://app.example.com` |
-| `NEXT_PUBLIC_API_URL` | Your API's address, e.g. `https://api.example.com` |
-| `STORAGE_ENDPOINT_URL` | Your R2 endpoint |
-| `STORAGE_SERVER_SIDE_ENCRYPTION` | empty for R2; `AES256` for Amazon S3 |
-
-`NEXT_PUBLIC_*` values are built into the web app, so they must also be available at build time (Render passes environment variables to Docker builds).
-
-**Keep secrets out of chat, email and git.** They belong only in the hosting platform's environment settings.
-
-### 6. Domains
-
-Add custom domains to `atlas-web` and `atlas-api` in Render, then update `WEB_ORIGINS`, `CLERK_AUTHORIZED_PARTIES` and `NEXT_PUBLIC_API_URL`, and add the web domain in Clerk.
+Change the domain names in `render.yaml` before deploying your own copy. Secrets never go in the repository; they live only in Render's settings.
 
 ## Clerk setup
 
-1. Create an application. Turn on the sign-in methods you want (email is enough to start).
-2. **Enable Organizations** (Configure → Organizations). Atlas calls these *workspaces*; every dataset belongs to one.
-3. **Add claims to the session token** (Configure → Sessions → Customize session token), so names and emails appear in Atlas:
+1. Create an application with email sign-in.
+2. Enable **Organizations** (Configure > Organizations). Atlas calls them workspaces.
+3. Add claims to the session token (Configure > Sessions > Customize session token):
    ```json
    { "email": "{{user.primary_email_address}}", "name": "{{user.full_name}}", "org_name": "{{org.name}}" }
    ```
-4. Copy the **Publishable key**, **Secret key** and **Frontend API URL** (that last one is `CLERK_ISSUER`).
+4. Copy the Publishable key, Secret key and Frontend API URL (`CLERK_ISSUER`).
 
-## How data is protected in this build
+## Security and privacy
 
-- **Company separation is enforced by the database.** Every table holding company data has row-level security; the app runs as a role that can only see the current workspace's rows. A missing filter in code returns nothing rather than another company's data.
-- **Files are treated as hostile.** Type is checked by content, not name. Old Excel files, macro workbooks and oversized archives are refused. Files are parsed in a separate process with a memory cap and a time limit. Formulas are never evaluated.
-- **Uploads are private.** Stored under random keys, never behind a public URL, and deleted automatically after 7 days. Deleting a dataset removes its file and rows immediately.
-- **Logs hold no task content.** IDs, counts, timings and error codes only. Users see plain-language errors with a reference code; stack traces stay in server logs.
-- **Exports can't run formulas.** Cells that start with `=`, `+`, `-`, `@`, tab or carriage return are written as text. Export files are private, downloaded only through the API and deleted with the upload after 7 days.
-- **AI review sends as little as possible** (see above), passes item fields as data, accepts only a fixed answer format and treats anything else as "unsure".
+- **Company separation is enforced by the database**, not only the application, and tested.
+- **Files are treated as hostile**: checked by content, parsed in a sandboxed process, macro workbooks and oversized archives refused, formulas never evaluated.
+- **Uploads and exports are private**: random keys, no public URLs, deleted after 7 days or when the dataset is deleted.
+- **Exports can't run formulas**: risky cells are written as text.
+- **Logs hold no customer content**: IDs, counts, timings and error codes only.
+- **AI review sends as little as possible**, passes item fields as data, accepts only a fixed answer format and treats anything else as "unsure".
 
-## Not yet built
+## Roadmap
 
-- Analysis of task exports (catalogues only for now; the screen says so).
-- Rate limiting per company and a full content-security policy for the web app come in Phase 11 (security hardening).
-
-See the Phase 4 plan document for the milestones.
+- Duplicate work in task exports (Jira, Asana and similar); the upload and column mapping already support them.
+- Per-company rate limiting and a content-security policy.
+- Cross-brand equivalents (stock one brand instead of three) and a check for new items before they're added.
