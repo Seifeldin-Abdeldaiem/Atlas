@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { heroRows } from "./sample";
+import { duplicateRows, duplicateValue, groups, heroRows, money } from "./sample";
 
 // The hero's example: five rows of a stock list, then what Atlas makes of them.
 // The animation is plain CSS (globals.css, "aha") and ends on the finished
@@ -13,6 +13,9 @@ import { heroRows } from "./sample";
 // motion shows the result straight away.
 
 const same = heroRows.filter((h) => h.same);
+// The hero's rows are the bearing group from the full example, so the money
+// figure matches it: stock on the rows other than the one Atlas keeps.
+const bearing = groups[0];
 const other = heroRows.find((h) => !h.same)!;
 const total = same.reduce((sum, h) => sum + h.row.stock, 0);
 const rowList = `${same
@@ -149,6 +152,10 @@ export default function Aha() {
               <strong className="aha-count num" aria-hidden="true" />
               <span className="visually-hidden">{total}</span>
               <span>in stock</span>
+            </p>
+            <p className="aha-money">
+              <strong className="num">{money(duplicateValue(bearing))}</strong> of it sits on the {duplicateRows(bearing).length} extra
+              rows, easy to miss and buy again.
             </p>
             <p className="aha-why">
               <b>Why:</b> same brand (SKF), same part number (6205), same seals (2RS). Row 4 is just written in Arabic.

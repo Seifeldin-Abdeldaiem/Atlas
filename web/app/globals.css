@@ -243,7 +243,7 @@ table.grid .right { text-align: right; }
 /* The example beside the headline. The markup is the finished result; the
    animations (all under .aha-play) start from "before" and end on it, so
    reduced motion simply switches them off. Timeline: rows scanned 0.5s,
-   rows marked 1.6s, first answer 2.3s, second answer 3.3s. */
+   rows marked 1.6s, first answer 2.3s, its money 3.1s, second answer 3.6s. */
 @property --aha-n { syntax: "<integer>"; inherits: false; initial-value: 0; }
 
 .aha {
@@ -297,6 +297,8 @@ table.grid .right { text-align: right; }
   font-family: var(--font-serif), Georgia, serif; font-size: 32px; line-height: 36px; font-weight: 500; color: var(--ok);
 }
 .aha-count::after { content: counter(aha-n); }
+.aha-money { margin: 2px 0; padding: 6px 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.65); font-size: 13px; line-height: 19px; color: var(--ink-2); }
+.aha-money strong { font-size: 15px; font-weight: 700; color: var(--warn); }
 .aha-why { font-size: 13px; line-height: 19px; color: var(--ink-2); }
 .aha-why b { color: var(--ink); font-weight: 600; }
 
@@ -316,8 +318,9 @@ table.grid .right { text-align: right; }
 .aha-play .aha-done { animation: aha-appear 0.3s ease 1.6s both; }
 .aha-play .aha-card-same { animation: aha-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 2.3s both; }
 .aha-play .aha-count { animation: aha-count 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 2.35s both; }
-.aha-play .aha-card-other { animation: aha-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 3.3s both; }
-.aha-play .aha-replay { animation: aha-appear 0.3s ease 3.8s both; }
+.aha-play .aha-money { animation: aha-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 3.1s both; }
+.aha-play .aha-card-other { animation: aha-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 3.6s both; }
+.aha-play .aha-replay { animation: aha-appear 0.3s ease 4.1s both; }
 .aha-wait .aha-play, .aha-wait .aha-play * { animation-play-state: paused !important; }
 @media (max-width: 1023px) {
   .aha-sm .aha-play, .aha-sm .aha-play * { animation-play-state: paused !important; }
@@ -343,6 +346,29 @@ table.grid .right { text-align: right; }
 .lp-costs > div { display: flex; flex-direction: column; gap: 10px; }
 .lp-costs p { color: #bab8b0; }
 .lp-num { font-size: 22px; color: #8fa6e8; }
+
+/* "What could it be costing you?" estimator, a light card on the dark band */
+.lp-calc { margin-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-radius: 14px; overflow: hidden; background: var(--surface); color: var(--ink); }
+.lp-calc-inputs { display: flex; flex-direction: column; gap: 18px; padding: 32px; }
+.lp-calc-inputs h3 { font-size: 22px; line-height: 28px; }
+.lp-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--ink-2); }
+.lp-field-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.lp-field-row output { font-size: 16px; font-weight: 600; color: var(--ink); }
+.lp-field input[type="text"] {
+  width: 100%; height: 46px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  background: var(--surface); font: inherit; font-size: 17px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.lp-field input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.lp-money-input { position: relative; display: block; }
+.lp-money-input > span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 17px; color: var(--ink-3); pointer-events: none; }
+.lp-money-input input[type="text"] { padding-left: 30px; }
+.lp-field input[type="range"] { width: 100%; height: 28px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.lp-calc-note { font-size: 13px; line-height: 19px; color: var(--ink-3); }
+.lp-calc-result { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; padding: 32px; background: var(--warn-tint); }
+.lp-calc-big { font-size: 60px; line-height: 64px; color: var(--ink); letter-spacing: -0.02em; }
+.lp-calc-result > p { font-size: 17px; line-height: 26px; color: var(--ink); max-width: 420px; }
+.lp-calc-result .lp-calc-sum { font-size: 13px; line-height: 18px; color: var(--ink-3); }
+.lp-calc-result .lp-calc-next { font-size: 14px; line-height: 20px; color: var(--ink-2); margin-top: 6px; }
 
 .lp-section { padding-top: 104px; display: flex; flex-direction: column; gap: 40px; scroll-margin-top: 72px; }
 .lp-section-head { display: flex; flex-direction: column; gap: 12px; }
@@ -507,6 +533,9 @@ table.grid .right { text-align: right; }
   .aha-table .aha-stock { width: 50px; }
   .lp-band { padding: 48px 0; }
   .lp-band-title { font-size: 28px; line-height: 34px; margin-bottom: 28px; }
+  .lp-calc { grid-template-columns: minmax(0, 1fr); margin-top: 36px; }
+  .lp-calc-inputs, .lp-calc-result { padding: 24px 20px; }
+  .lp-calc-big { font-size: 46px; line-height: 50px; }
   .lp-section { padding-top: 72px; gap: 28px; }
   .lp-section-head h2 { font-size: 30px; line-height: 36px; }
   .lp-care { grid-template-columns: minmax(0, 1fr); }

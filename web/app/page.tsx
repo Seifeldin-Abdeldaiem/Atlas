@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import Aha from "@/components/landing/Aha";
 import Demo from "@/components/landing/Demo";
+import Estimate from "@/components/landing/Estimate";
 import SmoothScroll from "@/components/landing/SmoothScroll";
 import { Logo } from "@/components/ui";
 
@@ -121,6 +122,7 @@ export default function Home() {
                 <p>Staff and customers see several versions of one item and have to guess which one is right.</p>
               </div>
             </div>
+            <Estimate cta={<Start />} />
           </div>
         </section>
 
@@ -362,7 +364,7 @@ export default function Home() {
           <div className="lp-final">
             <div>
               <h2 className="display">See the duplicates in your own spreadsheet.</h2>
-              <p>Upload a file, check what Atlas finds, download a clean copy. Free to try, no card needed.</p>
+              <p>Upload a file to see which rows are the same, the stock you really have and what it is worth. Free to try, no card needed.</p>
             </div>
             <Start className="btn lp-btn-light" />
           </div>

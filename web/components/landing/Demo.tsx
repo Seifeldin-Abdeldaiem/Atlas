@@ -51,7 +51,7 @@ export default function Demo() {
       <div className="lp-figures">
         <Figure value={String(totals.duplicateLines)} label="extra rows for products already listed" />
         <Figure value={String(totals.unitsOnDuplicates)} label="units of stock sitting on those rows" />
-        <Figure value={money(totals.valueOnDuplicates)} label="of stock hidden on those rows" />
+        <Figure value={money(totals.valueOnDuplicates)} label="of stock on those rows, easy to buy again" />
       </div>
 
       <div className="lp-tabs" role="tablist" aria-label="Example results" onKeyDown={onKey}>
