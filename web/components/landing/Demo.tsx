@@ -42,10 +42,10 @@ export default function Demo() {
       <div className="lp-demo-bar">
         <div className="lp-demo-file">
           <span className="lp-dot" aria-hidden="true" />
-          <span className="mono">example-stock-list.xlsx</span>
+          <span className="mono">test-stock-list.xlsx</span>
           <span className="muted">· {totals.rows} rows checked</span>
         </div>
-        <span className="badge badge-neutral">Example list, real results</span>
+        <span className="badge badge-neutral">Test list, Atlas results</span>
       </div>
 
       <div className="lp-figures">

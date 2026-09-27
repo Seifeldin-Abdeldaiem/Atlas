@@ -109,17 +109,25 @@ export default function Home() {
               <div>
                 <span className="lp-num serif">01</span>
                 <h3>You buy what you already have</h3>
-                <p>One row says you are running low, so you reorder. The same product is on the shelf under another name.</p>
+                <p>
+                  One row says you are running low, so you reorder.{" "}
+                  <span className="ul">The same product is on the shelf under another name.</span>
+                </p>
               </div>
               <div>
                 <span className="lp-num serif">02</span>
                 <h3>No stock count is right</h3>
-                <p>The stock is split across rows, so none of them shows how many you really hold.</p>
+                <p>
+                  The stock is split across rows, so <span className="ul">none of them shows how many you really hold</span>.
+                </p>
               </div>
               <div>
                 <span className="lp-num serif">03</span>
                 <h3>People pick the wrong row</h3>
-                <p>Staff and customers see several versions of one item and have to guess which one is right.</p>
+                <p>
+                  Staff and customers see several versions of one item and{" "}
+                  <span className="ul">have to guess which one is right</span>.
+                </p>
               </div>
             </div>
             <Estimate cta={<Start />} />
@@ -153,8 +161,8 @@ export default function Home() {
               <span className="lp-step-n">1</span>
               <h3>Upload your spreadsheet</h3>
               <p>
-                Export your product list from your stock system, online shop or Excel. Atlas finds the name, code, brand
-                and stock columns for you.
+                Export your product list from your stock system, online shop or Excel.{" "}
+                <span className="hl">Atlas finds the name, code, brand and stock columns for you.</span>
               </p>
             </li>
             <li>
@@ -174,8 +182,8 @@ export default function Home() {
               <span className="lp-step-n">2</span>
               <h3>Check what Atlas found</h3>
               <p>
-                Each group shows the rows and the reason they match. Confirm it, or mark it as not duplicates. Nothing
-                changes without you.
+                Each group shows the rows and the reason they match. Confirm it, or mark it as not duplicates.{" "}
+                <span className="hl">Nothing changes without you.</span>
               </p>
             </li>
             <li>
@@ -201,8 +209,8 @@ export default function Home() {
               <span className="lp-step-n">3</span>
               <h3>Download a clean file</h3>
               <p>
-                You get your own file back with every row kept and the answers added in new columns, ready for Excel or
-                your system.
+                You get your own file back with <span className="hl">every row kept</span> and the answers added in new
+                columns, ready for Excel or your system.
               </p>
             </li>
           </ol>
@@ -221,7 +229,10 @@ export default function Home() {
           <div className="lp-care">
             <article>
               <h3>It checks the details</h3>
-              <p>Brand, part number, size, thread, material, colour and type. One real difference keeps two rows apart.</p>
+              <p>
+                Brand, part number, size, thread, material, colour and type.{" "}
+                <span className="hl">One real difference keeps two rows apart.</span>
+              </p>
               <div className="lp-care-ex">
                 <span>Hex bolt M8x25</span>
                 <span className="lp-care-neq" aria-label="is not the same as">
@@ -232,12 +243,18 @@ export default function Home() {
             </article>
             <article>
               <h3>It tells you why</h3>
-              <p>Every match comes with a plain reason, so you can check it in seconds instead of taking it on trust.</p>
+              <p>
+                Every match comes with <span className="hl">a plain reason</span>, so you can check it in seconds instead
+                of taking it on trust.
+              </p>
               <p className="lp-care-quote">&ldquo;Same brand (SKF), same part number and variant (6205-2RS).&rdquo;</p>
             </article>
             <article>
               <h3>It asks when it isn&apos;t sure</h3>
-              <p>If two names don&apos;t clearly describe the same product, Atlas lists them under Needs review instead of guessing.</p>
+              <p>
+                If two names don&apos;t clearly describe the same product, Atlas lists them under Needs review{" "}
+                <span className="hl">instead of guessing</span>.
+              </p>
               <div className="lp-care-ex lp-care-ex-stack">
                 <span>Loctite 243 threadlocker 50ml</span>
                 <span className="lp-care-q">?</span>
@@ -246,7 +263,10 @@ export default function Home() {
             </article>
             <article>
               <h3>It reads messy lists</h3>
-              <p>Mixed-up word order, missing brands, stray symbols, and names written in Arabic, even on the same list.</p>
+              <p>
+                Mixed-up word order, missing brands, stray symbols, and <span className="hl">names written in Arabic</span>,
+                even on the same list.
+              </p>
               <div className="lp-chips">
                 <span>6205-2RS</span>
                 <span>6205 2RS</span>
@@ -287,7 +307,7 @@ export default function Home() {
               Try the full example
             </h2>
             <p className="lp-lead">
-              A small made-up list of bearings, bolts and glue, with Atlas&apos;s real results. Click through the tabs.
+              A small test list of bearings, bolts and glue, with Atlas&apos;s results. Click through the tabs.
             </p>
           </div>
           <Demo />
@@ -303,19 +323,30 @@ export default function Home() {
           <div className="lp-trust">
             <div>
               <h3>Walled off</h3>
-              <p>Each business&apos;s data is kept apart by the database itself, not only by the app.</p>
+              <p>
+                Each business&apos;s data is kept apart <span className="hl">by the database itself</span>, not only by the
+                app.
+              </p>
             </div>
             <div>
               <h3>Deleted after 7 days</h3>
-              <p>Uploaded files are removed automatically after a week, or sooner with one click.</p>
+              <p>
+                Uploaded files are removed automatically <span className="hl">after a week</span>, or sooner with one
+                click.
+              </p>
             </div>
             <div>
               <h3>Your systems stay untouched</h3>
-              <p>Atlas never connects to your stock system. It only reads the file you upload.</p>
+              <p>
+                Atlas <span className="hl">never connects</span> to your stock system. It only reads the file you upload.
+              </p>
             </div>
             <div>
               <h3>Files handled safely</h3>
-              <p>Macros and formulas in your files are never run. Files stay private, never public links.</p>
+              <p>
+                Macros and formulas in your files are <span className="hl">never run</span>. Files stay private, never
+                public links.
+              </p>
             </div>
           </div>
         </section>

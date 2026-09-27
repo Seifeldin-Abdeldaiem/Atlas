@@ -8,8 +8,11 @@ import { useId, useState, type ReactNode } from "react";
 // the stock, so the value is simply total stock value x the duplicate share.
 // The default share is cautious on purpose: industry reports on parts lists
 // often find 10 to 20%, and an estimate that oversells would cost trust.
+// Holding cost (storage, insurance, the money tied up) is usually put at 15
+// to 30% of stock value a year; the estimate uses 20%.
 
 const DEFAULTS = { products: 5000, value: 200000, share: 5 };
+const HOLDING = 20; // % of stock value a year
 
 const toNumber = (text: string) => {
   const n = Number(text.replace(/[^0-9.]/g, ""));
@@ -26,6 +29,7 @@ export default function Estimate({ cta }: { cta: ReactNode }) {
 
   const rows = Math.round((toNumber(products) * share) / 100);
   const atRisk = (toNumber(value) * share) / 100;
+  const holding = (atRisk * HOLDING) / 100;
   const tidy = (text: string) => (text.trim() ? whole.format(toNumber(text)) : "");
 
   return (
@@ -82,15 +86,30 @@ export default function Estimate({ cta }: { cta: ReactNode }) {
         </p>
       </div>
 
-      <div className="lp-calc-result" aria-live="polite">
-        <span className="lp-calc-big serif num">{pounds.format(atRisk)}</span>
-        <p>
-          of stock could be sitting on about {whole.format(rows)} duplicate {rows === 1 ? "row" : "rows"}, where it is easy
-          to miss and buy again.
+      <div className="lp-calc-result">
+        <p className="visually-hidden" aria-live="polite">
+          Estimate: {pounds.format(atRisk)} of stock on about {whole.format(rows)} duplicate rows, and{" "}
+          {pounds.format(holding)} a year to hold it.
         </p>
+        <div className="lp-calc-line" aria-hidden="true">
+          <span className="lp-calc-big serif num">{pounds.format(atRisk)}</span>
+          <p>
+            of stock could be sitting on about {whole.format(rows)} duplicate {rows === 1 ? "row" : "rows"},{" "}
+            <span className="ul">where it is easy to miss and buy again</span>.
+          </p>
+        </div>
+        <div className="lp-calc-line" aria-hidden="true">
+          <span className="lp-calc-mid serif num">{pounds.format(holding)} a year</span>
+          <p>
+            to keep that stock on the shelf: storage, insurance and <span className="ul">the money tied up in it</span>.
+          </p>
+        </div>
         <p className="lp-calc-sum num">
           {pounds.format(toNumber(value))} × {share}% = {pounds.format(atRisk)}
+          <br />
+          {pounds.format(atRisk)} × {HOLDING}% a year = {pounds.format(holding)}
         </p>
+        <p className="lp-calc-note">Holding stock usually costs 15 to 30% of its value each year. We use {HOLDING}%.</p>
         <p className="lp-calc-next">A rough guess. Upload your list to get the real figure.</p>
         {cta}
       </div>

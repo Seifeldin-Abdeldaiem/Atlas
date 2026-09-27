@@ -6,11 +6,13 @@ import { duplicateRows, duplicateValue, groups, heroRows, money } from "./sample
 
 // The hero's example: five rows of a stock list, then what Atlas makes of them.
 // The animation is plain CSS (globals.css, "aha") and ends on the finished
-// result in under four seconds. On wide screens it starts on first paint,
-// before any JavaScript loads. On narrow screens the answers sit below the
-// fold, so it waits at the first frame until they scroll into view; the same
-// goes for a page opened in a background tab. Replay runs it again; reduced
-// motion shows the result straight away.
+// result after about seven seconds, with the three takeaways highlighted in
+// turn. On wide screens it starts on first paint, before any JavaScript loads.
+// On narrow screens the answers sit below the fold, so it waits at the first
+// frame until they scroll into view; the same goes for a page opened in a
+// background tab. It moves for more than five seconds, so the button offers
+// Skip while it plays (WCAG 2.2.2) and Replay after. Reduced motion shows the
+// result straight away.
 
 const same = heroRows.filter((h) => h.same);
 // The hero's rows are the bearing group from the full example, so the money
@@ -18,6 +20,7 @@ const same = heroRows.filter((h) => h.same);
 const bearing = groups[0];
 const other = heroRows.find((h) => !h.same)!;
 const total = same.reduce((sum, h) => sum + h.row.stock, 0);
+const at = (seconds: number) => ({ "--at": `${seconds}s` }) as CSSProperties;
 const rowList = `${same
   .slice(0, -1)
   .map((h) => h.n)
@@ -26,10 +29,11 @@ const rowList = `${same
 export default function Aha() {
   const ref = useRef<HTMLElement>(null);
   const results = useRef<HTMLDivElement>(null);
+  const skip = useRef<HTMLSpanElement>(null);
   const [run, setRun] = useState(0);
   // "sm": as served (paused at the first frame on narrow screens only),
-  // "wait": paused everywhere, "go": playing.
-  const [mode, setMode] = useState<"sm" | "wait" | "go">("sm");
+  // "wait": paused everywhere, "go": playing, "done": skipped to the end.
+  const [mode, setMode] = useState<"sm" | "wait" | "go" | "done">("sm");
 
   useEffect(() => {
     const el = ref.current;
@@ -146,7 +150,12 @@ export default function Aha() {
               </span>
               <span className="aha-kind">Same product</span>
             </div>
-            <p className="aha-title">Rows {rowList} are the same bearing</p>
+            <p className="aha-title">
+              Rows {rowList} are{" "}
+              <span className="aha-hl" style={at(3.8)}>
+                the same bearing
+              </span>
+            </p>
             <p className="aha-sum">
               <span className="num">{same.map((h) => h.row.stock).join(" + ")} =</span>
               <strong className="aha-count num" aria-hidden="true" />
@@ -155,7 +164,11 @@ export default function Aha() {
             </p>
             <p className="aha-money">
               <strong className="num">{money(duplicateValue(bearing))}</strong> of it sits on the {duplicateRows(bearing).length} extra
-              rows, easy to miss and buy again.
+              rows,{" "}
+              <span className="aha-hl" style={at(5.1)}>
+                easy to miss and buy again
+              </span>
+              .
             </p>
             <p className="aha-why">
               <b>Why:</b> same brand (SKF), same part number (6205), same seals (2RS). Row 4 is just written in Arabic.
@@ -169,21 +182,40 @@ export default function Aha() {
               </span>
               <span className="aha-kind">Kept apart</span>
             </div>
-            <p className="aha-title">Row {other.n} looks the same, but isn&apos;t</p>
+            <p className="aha-title">
+              Row {other.n} looks the same,{" "}
+              <span className="aha-ul" style={at(6.2)}>
+                but isn&apos;t
+              </span>
+            </p>
             <p className="aha-why">ZZ has metal shields, 2RS has rubber seals. They are different parts.</p>
           </div>
         </div>
 
         <div className="aha-foot">
-          <span>Made-up list, real Atlas result</span>
-          <button type="button" className="aha-replay" onClick={() => {
+          <span>Test list, Atlas results</span>
+          <button
+            type="button"
+            className="aha-replay"
+            onClick={() => {
+              // CSS shows "Skip" only while the animation runs.
+              if (skip.current && getComputedStyle(skip.current).visibility === "visible") {
+                setMode("done");
+                return;
+              }
               setRun((r) => r + 1);
               setMode("go");
-            }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M2 6a4 4 0 1 0 1.2-2.85M2 1.8v2.4h2.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Replay
+            }}
+          >
+            <span ref={skip} className="aha-btn-skip">
+              Skip
+            </span>
+            <span className="aha-btn-replay">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M2 6a4 4 0 1 0 1.2-2.85M2 1.8v2.4h2.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Replay
+            </span>
           </button>
         </div>
       </div>

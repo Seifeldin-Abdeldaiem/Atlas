@@ -1,4 +1,4 @@
-// A small made-up stock list for the public landing page, and what Atlas's
+// A small test stock list for the public landing page, and what Atlas's
 // matcher really says about it: the groups, reasons, look-alikes and the pair
 // it isn't sure about are copied from its output. backend/tests/test_matching.py
 // (test_landing_example) checks the matcher still gives these answers, so keep
