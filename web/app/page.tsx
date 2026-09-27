@@ -292,7 +292,7 @@ export default function Home() {
             </div>
             <div>
               <dt className="serif num">7 days</dt>
-              <dd>then your uploaded files are deleted</dd>
+              <dd>then the file you uploaded is deleted</dd>
             </div>
           </dl>
           <p className="lp-small muted">
@@ -329,10 +329,10 @@ export default function Home() {
               </p>
             </div>
             <div>
-              <h3>Deleted after 7 days</h3>
+              <h3>Files deleted after 7 days</h3>
               <p>
-                Uploaded files are removed automatically <span className="hl">after a week</span>, or sooner with one
-                click.
+                The file you upload is deleted after a week. The rows read from it stay in your workspace until you
+                delete the dataset, which <span className="hl">removes everything at once</span>.
               </p>
             </div>
             <div>
@@ -376,6 +376,14 @@ export default function Home() {
             <details>
               <summary>Will it change my stock system?</summary>
               <p>No. Atlas never connects to your systems. You download a file with the results and decide what to change.</p>
+            </details>
+            <details>
+              <summary>How long do you keep my data?</summary>
+              <p>
+                The file you upload is deleted after 7 days. The rows Atlas read from it, and your results, stay in your
+                workspace so you can come back to them, until you delete the dataset. That removes everything straight
+                away.
+              </p>
             </details>
             <details>
               <summary>What if Atlas gets one wrong?</summary>
