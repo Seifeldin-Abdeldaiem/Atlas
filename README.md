@@ -49,7 +49,7 @@ flowchart LR
 | File storage | S3-compatible: Cloudflare R2 in production, SeaweedFS locally |
 | AI review (optional) | Anthropic Claude API with structured output |
 | Hosting | Docker on Render, DNS on Cloudflare; one `render.yaml` blueprint |
-| Tests | 181 automated tests: matching accuracy, company separation, full pipeline, exports |
+| Tests | 182 automated tests: matching accuracy, company separation, full pipeline, exports |
 
 ## What's in the repository
 

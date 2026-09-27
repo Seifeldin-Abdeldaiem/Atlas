@@ -182,3 +182,37 @@ def test_twenty_thousand_rows_in_reasonable_time():
     elapsed = time.monotonic() - started
     print(f"\n20,000 rows analysed in {elapsed:.1f}s, {result.stats['pairs_compared']:,} pairs compared")
     assert elapsed < 120
+
+
+# The public landing page shows these rows and Atlas's answers as "real results"
+# (web/components/landing/sample.ts). Keep the two in step.
+LANDING_EXAMPLE = [
+    ("BRG-0142", "SKF 6205-2RS Deep Groove Ball Bearing", "SKF"),
+    ("BRG-0388", "6205 2RS SKF bearing", "SKF"),
+    ("BRG-1177", "Bearing 6205-2RS (SKF)", ""),
+    ("BRG-2051", "رولمان بلي 6205 2RS اس كي اف", ""),
+    ("BRG-0143", "SKF 6205-ZZ Deep Groove Ball Bearing", "SKF"),
+    ("BRG-0412", "SKF 6205-2RS/C3", "SKF"),
+    ("FST-2210", "Hex bolt M8x25 A2 SS", ""),
+    ("FST-3019", "M8 X 25MM HEX HD BOLT STAINLESS", ""),
+    ("FST-2208", "Hex bolt M8x20 A2 SS", ""),
+    ("CHM-0071", "Loctite 243 threadlocker 50ml", "Loctite"),
+    ("CHM-0460", "Threadlock medium strength blue 243 50 ml", ""),
+]
+
+
+def test_landing_example():
+    items = [item(i, name, item_code=code, brand=brand) for i, (code, name, brand) in enumerate(LANDING_EXAMPLE)]
+    code = {it.row: it.code for it in items}
+    result = analyse(items)
+
+    groups = {frozenset(code[r] for r in g.rows): (g.confidence, g.reasons[0]) for g in result.groups}
+    assert groups == {
+        frozenset({"BRG-0142", "BRG-0388", "BRG-1177", "BRG-2051"}): ("high", "Same brand (SKF), same part number and variant (6205-2RS)."),
+        frozenset({"FST-2210", "FST-3019"}): ("medium", "Same kind of product (bolt) with the same thread and length. No part number to confirm."),
+    }
+    lookalikes = {frozenset((code[p.a], code[p.b])): p.detail for p in result.lookalikes}
+    assert lookalikes[frozenset({"BRG-0142", "BRG-0143"})] == "Different seal type: 2RS has rubber seals on both sides, ZZ has metal shields on both sides."
+    assert lookalikes[frozenset({"BRG-0388", "BRG-0412"})] == "Only one has C3 (larger) internal clearance (C3)."
+    assert lookalikes[frozenset({"FST-2210", "FST-2208"})] == "Different lengths: 25 mm and 20 mm."
+    assert [frozenset((code[p.a], code[p.b])) for p in result.unsure] == [frozenset({"CHM-0071", "CHM-0460"})]

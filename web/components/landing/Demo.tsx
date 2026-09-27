@@ -3,20 +3,22 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 
 import {
-  duplicateValue,
+  allRows,
   groupStock,
   groups,
   lookalikes,
   money,
   totals,
+  unsure,
   type SampleGroup,
+  type SamplePair,
 } from "./sample";
 
 const TABS = [
   { id: "duplicates", label: "Duplicates", count: totals.groups },
   { id: "lookalikes", label: "Similar but different", count: lookalikes.length },
-  { id: "stock", label: "Stock and value", count: null },
-  { id: "file", label: "Clean file", count: null },
+  { id: "review", label: "Needs review", count: unsure.length },
+  { id: "file", label: "Your file", count: null },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -40,10 +42,16 @@ export default function Demo() {
       <div className="lp-demo-bar">
         <div className="lp-demo-file">
           <span className="lp-dot" aria-hidden="true" />
-          <span className="mono">stores-catalogue.xlsx</span>
-          <span className="muted">· 1,240 lines checked</span>
+          <span className="mono">example-stock-list.xlsx</span>
+          <span className="muted">· {totals.rows} rows checked</span>
         </div>
-        <span className="badge badge-warn">Example results</span>
+        <span className="badge badge-neutral">Example list, real results</span>
+      </div>
+
+      <div className="lp-figures">
+        <Figure value={String(totals.duplicateLines)} label="extra rows for products already listed" />
+        <Figure value={String(totals.unitsOnDuplicates)} label="units of stock sitting on those rows" />
+        <Figure value={money(totals.valueOnDuplicates)} label="of stock hidden on those rows" />
       </div>
 
       <div className="lp-tabs" role="tablist" aria-label="Example results" onKeyDown={onKey}>
@@ -69,9 +77,22 @@ export default function Demo() {
 
       <div className="lp-demo-body" role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === "duplicates" && <Duplicates />}
-        {tab === "lookalikes" && <Lookalikes />}
-        {tab === "stock" && <StockValue />}
-        {tab === "file" && <CleanFile />}
+        {tab === "lookalikes" && (
+          <Pairs
+            pairs={lookalikes}
+            note="These look almost the same, but they are different parts. Atlas keeps them apart and tells you why."
+            sign="≠"
+          />
+        )}
+        {tab === "review" && (
+          <Pairs
+            pairs={unsure}
+            note="When the names don't clearly describe the same product, Atlas doesn't guess. You decide with one click."
+            sign="?"
+            actions
+          />
+        )}
+        {tab === "file" && <YourFile />}
       </div>
     </div>
   );
@@ -93,7 +114,12 @@ function GroupCard({ group }: { group: SampleGroup }) {
       <header className="lp-group-head">
         <div>
           <h4>{group.standardName}</h4>
-          <p className="muted">{group.reason}</p>
+          <p className="muted">
+            <span className="mono">{group.id}</span> · {group.reason}
+          </p>
+          <p className="lp-group-figure">
+            {groupStock(group)} in stock across {group.rows.length} rows
+          </p>
         </div>
         <span className={`badge ${group.confidence === "High" ? "badge-ok" : "badge-run"}`}>
           {group.confidence} confidence
@@ -114,14 +140,16 @@ function GroupCard({ group }: { group: SampleGroup }) {
             {group.rows.map((r) => (
               <tr key={r.code}>
                 <td className="mono">{r.code}</td>
-                <td>{r.name}</td>
+                <td>
+                  <bdi>{r.name}</bdi>
+                </td>
                 <td className="right num">{r.stock}</td>
                 <td className="right num">{money(r.cost)}</td>
                 <td className="right">
                   {r.code === group.masterCode ? (
                     <span className="badge badge-neutral">Keep</span>
                   ) : (
-                    <span className="lp-merge">Merge</span>
+                    <span className="lp-merge">Duplicate</span>
                   )}
                 </td>
               </tr>
@@ -133,21 +161,19 @@ function GroupCard({ group }: { group: SampleGroup }) {
   );
 }
 
-function Lookalikes() {
+function Pairs({ pairs, note, sign, actions = false }: { pairs: SamplePair[]; note: string; sign: string; actions?: boolean }) {
   return (
     <div className="lp-stack">
-      <p className="muted lp-note">
-        These look almost the same, but they are different parts. Atlas keeps them apart and tells you why.
-      </p>
-      {lookalikes.map((p) => (
-        <article key={p.b.code} className="lp-pair">
+      <p className="muted lp-note">{note}</p>
+      {pairs.map((p) => (
+        <article key={`${p.a.code}-${p.b.code}`} className="lp-pair">
           <div className="lp-pair-items">
             <div>
               <span className="mono muted">{p.a.code}</span>
               <strong>{p.a.name}</strong>
             </div>
-            <span className="lp-neq" aria-label="is not the same as">
-              ≠
+            <span className="lp-neq" aria-label={sign === "≠" ? "is not the same as" : "might be the same as"}>
+              {sign}
             </span>
             <div>
               <span className="mono muted">{p.b.code}</span>
@@ -155,61 +181,33 @@ function Lookalikes() {
             </div>
           </div>
           <p>
-            <span className="badge badge-danger">{p.difference}</span> {p.detail}
+            <span className={`badge ${actions ? "badge-warn" : "badge-danger"}`}>{p.difference}</span> {p.detail}
           </p>
+          {actions && (
+            <div className="lp-pair-actions" aria-hidden="true">
+              <span className="lp-art-btn lp-art-btn-primary">Same item</span>
+              <span className="lp-art-btn">Different items</span>
+            </div>
+          )}
         </article>
       ))}
     </div>
   );
 }
 
-function StockValue() {
-  return (
-    <div className="lp-stack">
-      <div className="lp-figures">
-        <Figure value={String(totals.duplicateLines)} label="duplicate lines" />
-        <Figure value={String(totals.unitsOnDuplicates)} label="units sitting on duplicate lines" />
-        <Figure value={money(totals.valueOnDuplicates)} label="of stock on duplicate lines" />
-      </div>
-      <div className="table-wrap lp-bordered">
-        <table className="grid">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th className="right">Lines</th>
-              <th className="right">Total in stock</th>
-              <th className="right">Value on duplicate lines</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((g) => (
-              <tr key={g.id}>
-                <td>{g.standardName}</td>
-                <td className="right num">{g.rows.length}</td>
-                <td className="right num">{groupStock(g)}</td>
-                <td className="right num">{money(duplicateValue(g))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="muted lp-note">
-        For example, you have {groupStock(groups[0])} of the SKF 6205-2RS bearing, not {groups[0].rows[0].stock}.
-        Before reordering, check the total.
-      </p>
-    </div>
-  );
-}
-
-function CleanFile() {
-  const rows = groups.flatMap((g) =>
-    g.rows.map((r) => ({ ...r, group: g.id, role: r.code === g.masterCode ? "master" : "duplicate", std: g.standardName })),
-  );
+function YourFile() {
+  const info = new Map<string, { group: string; role: string; std: string }>();
+  for (const g of groups) {
+    for (const r of g.rows) info.set(r.code, { group: g.id, role: r.code === g.masterCode ? "master" : "duplicate", std: g.standardName });
+  }
+  for (const p of unsure) {
+    for (const r of [p.a, p.b]) info.set(r.code, { group: "", role: "needs_review", std: "" });
+  }
   return (
     <div className="lp-stack">
       <p className="muted lp-note">
-        You get your own file back, every row and column untouched, with Atlas&apos;s findings added on the right. Open
-        it in Excel, filter, and import it back.
+        You get your own file back, every row and column untouched, with Atlas&apos;s answers added on the right. Open it
+        in Excel, filter by group, and fix the rows you choose.
       </p>
       <div className="table-wrap lp-bordered">
         <table className="grid lp-file">
@@ -223,19 +221,24 @@ function CleanFile() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.code}>
-                <td className="mono">{r.code}</td>
-                <td>
-                  <span className="trunc">{r.name}</span>
-                </td>
-                <td className="mono lp-added">{r.group}</td>
-                <td className="mono lp-added">{r.role}</td>
-                <td className="lp-added">
-                  <span className="trunc">{r.std}</span>
-                </td>
-              </tr>
-            ))}
+            {allRows.map((r) => {
+              const a = info.get(r.code) ?? { group: "", role: "unique", std: "" };
+              return (
+                <tr key={r.code}>
+                  <td className="mono">{r.code}</td>
+                  <td>
+                    <span className="trunc">
+                      <bdi>{r.name}</bdi>
+                    </span>
+                  </td>
+                  <td className="mono lp-added">{a.group}</td>
+                  <td className="mono lp-added">{a.role}</td>
+                  <td className="lp-added">
+                    <span className="trunc">{a.std}</span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

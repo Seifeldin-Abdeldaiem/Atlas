@@ -1,6 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
+import { Atkinson_Hyperlegible_Next, IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./globals.css";
@@ -8,10 +8,13 @@ import "./globals.css";
 const sans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans", display: "swap" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 const serif = Newsreader({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-serif", display: "swap" });
+// The landing page's plain-English explanation. Designed by the Braille
+// Institute so similar letters can't be mistaken for each other.
+const display = Atkinson_Hyperlegible_Next({ subsets: ["latin"], variable: "--font-display", display: "swap", adjustFontFallback: false });
 
 const SITE_URL = "https://atlasmatch.co.uk";
 const DESCRIPTION =
-  "Atlas finds the duplicate lines in your product catalogue, keeps look-alike parts apart, and shows the stock tied up in duplicates. Upload a spreadsheet, review the matches, download a clean file.";
+  "Atlas finds the same product listed more than once in your spreadsheet, adds up the real stock and keeps look-alike parts apart. Upload a file, check every match, download a clean copy.";
 
 // Public pages are listed by search engines; the signed-in app and the
 // sign-in pages opt out in their own layouts (and in robots.ts).
@@ -39,7 +42,7 @@ const clerkAppearance = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider appearance={clerkAppearance}>
-      <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
+      <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable} ${display.variable}`}>
         <body>{children}</body>
       </html>
     </ClerkProvider>

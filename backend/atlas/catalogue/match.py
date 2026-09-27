@@ -316,7 +316,8 @@ def compare(x: Item, y: Item, fx: _Features | None = None, fy: _Features | None 
     numeric = set(agree) & {"thread", "length_mm", "sizes_mm", "power_w", "voltage_v", "current_a"}
     if types_agree and numeric and (len(agree) >= 2 or score >= SUPPORT):
         kind = "/".join(sorted(set(nx["types"]) & set(ny["types"])))
-        spec = ", ".join(_SPEC_NAMES[a] for a in agree)
+        names = [_SPEC_NAMES[a] for a in agree]
+        spec = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
         return same("medium", "same_spec", f"Same kind of product ({kind}) with the same {spec}. No part number to confirm.")
 
     if cross_script and types_agree and (both_brands or numbers_agree or agree):
