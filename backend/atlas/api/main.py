@@ -33,6 +33,15 @@ async def lifespan(_: FastAPI):
     db.close_pool()
 
 
+def _internal_error(request: Request) -> JSONResponse:
+    reference = new_reference()
+    log.exception("unhandled error", extra={"reference": reference, "route": request.url.path})
+    return JSONResponse(
+        {"error": {"code": "internal_error", "message": MESSAGES["internal_error"].format(reference=reference), "reference": reference}},
+        status_code=500,
+    )
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     docs = settings.environment != "production"
@@ -43,16 +52,6 @@ def create_app() -> FastAPI:
         redoc_url=None,
         openapi_url="/openapi.json" if docs else None,
     )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST", "PUT", "DELETE"],
-        allow_headers=["Authorization", "Content-Type"],
-        # The web app reads the download's file name from this header.
-        expose_headers=["Content-Disposition"],
-        max_age=600,
-    )
-
     @app.middleware("http")
     async def guard_and_log(request: Request, call_next):
         started = time.monotonic()
@@ -60,7 +59,14 @@ def create_app() -> FastAPI:
         if length and length.isdigit() and int(length) > settings.max_upload_bytes + 1024 * 1024:
             error = AtlasError("file_too_large", status_code=413, limit_mb=settings.max_upload_mb)
             return JSONResponse({"error": error.to_dict()}, status_code=413)
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            # Handled here rather than by the Exception handler below:
+            # Starlette runs that handler outside every middleware, so its
+            # 500 would carry no CORS headers and the browser would report
+            # "couldn't reach Atlas" instead of the real message.
+            response = _internal_error(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Cache-Control"] = "no-store"
@@ -94,12 +100,20 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, _: Exception):
-        reference = new_reference()
-        log.exception("unhandled error", extra={"reference": reference, "route": request.url.path})
-        return JSONResponse(
-            {"error": {"code": "internal_error", "message": MESSAGES["internal_error"].format(reference=reference), "reference": reference}},
-            status_code=500,
-        )
+        return _internal_error(request)
+
+    # Added last so it wraps everything above: every response, including the
+    # 413 from guard_and_log and unexpected 500s, gets CORS headers, so the
+    # web app can show the real error instead of a network failure.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_headers=["Authorization", "Content-Type"],
+        # The web app reads the download's file name from this header.
+        expose_headers=["Content-Disposition"],
+        max_age=600,
+    )
 
     @app.get("/healthz", include_in_schema=False)
     def health() -> dict:
