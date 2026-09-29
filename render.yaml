@@ -25,6 +25,8 @@ services:
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /healthz
+        domains:
+      - api.atlasmatch.co.uk
     envVars:
       - key: ENVIRONMENT
         value: production
@@ -78,7 +80,7 @@ services:
       - www.atlasmatch.co.uk
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://atlas-api-g79j.onrender.com
+        value: https://api.atlasmatch.co.uk
       - key: NEXT_PUBLIC_CLERK_SIGN_IN_URL
         value: /sign-in
       - key: NEXT_PUBLIC_CLERK_SIGN_UP_URL
