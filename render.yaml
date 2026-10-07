@@ -75,12 +75,17 @@ services:
     region: frankfurt
     dockerContext: ./web
     dockerfilePath: ./web/Dockerfile
+    healthCheckPath: /api/health
     domains:
       - atlasmatch.co.uk
       - www.atlasmatch.co.uk
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://api.atlasmatch.co.uk
+      # When a real visitor opens Atlas, wake these sleeping free services
+      # (at most once per 15 minutes). See web/lib/wake.ts.
+      - key: WAKE_URLS
+        value: "https://atlas-api-g79j.onrender.com/healthz,https://leadscout-k7q2.onrender.com/api/health,https://unkerb.onrender.com/api/health"
       - key: NEXT_PUBLIC_CLERK_SIGN_IN_URL
         value: /sign-in
       - key: NEXT_PUBLIC_CLERK_SIGN_UP_URL

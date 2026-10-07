@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Atkinson_Hyperlegible_Next, IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
 
+import WakeOthers from "@/components/WakeOthers";
+
 import "./globals.css";
 
 const sans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans", display: "swap" });
@@ -43,7 +45,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider appearance={clerkAppearance}>
       <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable} ${display.variable}`}>
-        <body>{children}</body>
+        <body>
+          {children}
+          <WakeOthers />
+        </body>
       </html>
     </ClerkProvider>
   );
