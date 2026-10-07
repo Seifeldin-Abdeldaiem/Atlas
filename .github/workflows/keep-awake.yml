@@ -1,0 +1,36 @@
+name: Keep Atlas awake
+
+# Render's free plan puts a service to sleep after about 15 minutes with no
+# traffic, and the next visitor then waits about a minute for it to wake.
+# Pinging the website's health check keeps it awake. When a real visitor
+# opens a page, the site then wakes the API and the owner's other sites
+# (web/lib/wake.ts); this ping loads no page, so it never triggers that.
+#
+# Every 14 minutes (minutes 3, 17, 31, 45 and 59 of each hour), just inside
+# the 15-minute sleep window. GitHub can run scheduled jobs a few minutes
+# late, so the site may occasionally fall asleep; "3-59/5" avoids that at no
+# extra cost, since Render counts awake hours, not requests. GitHub pauses
+# scheduled workflows after 60 days with no commits; re-enable it from the
+# Actions tab if that happens.
+#
+# An always-awake free service uses ~730 of the Render workspace's ~750 free
+# instance hours a month, shared with every other free service on it.
+on:
+  schedule:
+    - cron: "3-59/14 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  SITE_URL: https://atlas-web-smkl.onrender.com
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the health check
+        # Generous timeout and retries: if the site did fall asleep, the first
+        # request takes up to a minute while it wakes.
+        run: curl -fsS --retry 3 --retry-delay 15 --max-time 90 "$SITE_URL/api/health"
